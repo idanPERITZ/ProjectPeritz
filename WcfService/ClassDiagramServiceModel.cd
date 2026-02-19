@@ -1,0 +1,34 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<ClassDiagram MajorVersion="1" MinorVersion="1">
+  <Class Name="WcfService.ChessServiceAdmin">
+    <Position X="5" Y="2.75" Width="1.75" />
+    <TypeIdentifier>
+      <HashCode>gAAKAAKAFBACAgIEACAgAAEAIQAAAAAAKTARQAEAEAA=</HashCode>
+      <FileName>ChessServiceAdmin.cs</FileName>
+    </TypeIdentifier>
+    <Lollipop Position="0.2" />
+  </Class>
+  <Class Name="WcfService.ChessServiceUser">
+    <Position X="9.25" Y="2.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAACAEAAACAIEAAAgAAEAAQAAAAEACBARAAAAEAA=</HashCode>
+      <FileName>ChessServiceUser.cs</FileName>
+    </TypeIdentifier>
+    <Lollipop Position="0.2" />
+  </Class>
+  <Interface Name="WcfService.IChessServiceAdmin">
+    <Position X="2.75" Y="2.75" Width="2" />
+    <TypeIdentifier>
+      <HashCode>gAAKAAKAFBACAgIEACAgAAEAIQAAAAAAKRARQAEAEAA=</HashCode>
+      <FileName>IChessServiceAdmin.cs</FileName>
+    </TypeIdentifier>
+  </Interface>
+  <Interface Name="WcfService.IChessServiceUser">
+    <Position X="7.5" Y="2.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAACAEAAACAIEAAAgAAEAAQAAAAEACBARAAAAEAA=</HashCode>
+      <FileName>IChessServiceUser.cs</FileName>
+    </TypeIdentifier>
+  </Interface>
+  <Font Name="Segoe UI" Size="9" />
+</ClassDiagram>
