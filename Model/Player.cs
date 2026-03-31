@@ -15,8 +15,6 @@ namespace Model
         private string email;
         // Field: Date when player joined the system
         private DateTime dateJoined;
-        // Field: Player's ELO rating (skill level)
-        private int elo;
         // Field: Type of user account ("regular", "admin")
         private string userType;
         // Field: Total number of games played
@@ -57,16 +55,6 @@ namespace Model
             get { return dateJoined; }
             // Set the join date
             set { dateJoined = value; }
-        }
-
-        // Property: Gets or sets the player's ELO rating
-        [DataMember]
-        public int Elo
-        {
-            // Return the ELO rating
-            get { return elo; }
-            // Set the ELO rating
-            set { elo = value; }
         }
 
         // Property: Gets or sets the user account type

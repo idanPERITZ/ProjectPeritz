@@ -73,32 +73,6 @@ namespace Model
             // Set the result (winner)
             set { result = value; }
         }
-
-        // Field: White player's ELO rating before the game
-        private int whiteElo;
-
-        // Property: Gets or sets white player's ELO rating
-        [DataMember]
-        public int WhiteElo
-        {
-            // Return white's ELO
-            get { return whiteElo; }
-            // Set white's ELO
-            set { whiteElo = value; }
-        }
-
-        // Field: Black player's ELO rating before the game
-        private int blackElo;
-
-        // Property: Gets or sets black player's ELO rating
-        [DataMember]
-        public int BlackElo
-        {
-            // Return black's ELO
-            get { return blackElo; }
-            // Set black's ELO
-            set { blackElo = value; }
-        }
     }
 
     // Collection class for managing a list of games

@@ -10,6 +10,7 @@ using ViewModel;
 namespace WcfService
 {
     // WCF Service Contract interface defining all admin operations for the chess system
+    // All methods marked with [OperationContract] are exposed as web service endpoints
     [ServiceContract]
     public interface IChessServiceAdmin
     {
@@ -23,25 +24,34 @@ namespace WcfService
         [OperationContract]
         Game GetGameByID(int gameID);
 
-        // Operation: Inserts a new game into the database
+        // Operation: Inserts a new game into the database and returns it
         [OperationContract]
-        void InsertGame(Game game);
+        Game InsertGame(Game game);
 
-        // Operation: Deletes a game from the database
+        // Operation: Inserts a new game and returns it with its auto-generated ID
         [OperationContract]
-        void DeleteGame(Game game);
+        Game InsertGameAndReturn(Game game);
 
         // Operation: Updates an existing game in the database
         [OperationContract]
         void UpdateGame(Game game);
 
-        // Operation: Retrieves the most recent game for a specific player
+        // Operation: Updates only the result of a game (winner or draw)
         [OperationContract]
-        Game GetLatestGameForPlayer(int playerID);
+        void UpdateGameResult(Game game);
+
+        // Operation: Deletes a game from the database
+        // Note: Delete all moves first using DeleteMovesByGameID to avoid FK constraint errors
+        [OperationContract]
+        void DeleteGame(Game game);
 
         // Operation: Retrieves all games where a specific player participated
         [OperationContract]
         GameList GetGamesByPlayer(int playerID);
+
+        // Operation: Retrieves the most recent game for a specific player
+        [OperationContract]
+        Game GetLatestGameForPlayer(int playerID);
 
         // Operation: Checks if a game has finished (has a result)
         [OperationContract]
@@ -51,97 +61,119 @@ namespace WcfService
         [OperationContract]
         GameList GetActiveGames();
 
+        // ============= MOVE OPERATIONS =============
+
+        // Operation: Inserts a new move into the database
+        [OperationContract]
+        void InsertMove(MoveRecord move);
+
+        // Operation: Updates an existing move in the database
+        [OperationContract]
+        void UpdateMove(MoveRecord move);
+
+        // Operation: Deletes a single move from the database
+        [OperationContract]
+        void DeleteMove(MoveRecord move);
+
+        // Operation: Deletes all moves associated with a specific game
+        // Must be called before DeleteGame to avoid FK constraint errors
+        [OperationContract]
+        void DeleteMovesByGameID(int gameID);
+
+        // Operation: Retrieves all moves from the database
+        [OperationContract]
+        MoveList GetAllMoves();
+
+        // Operation: Retrieves all moves for a specific game ordered by move index
+        [OperationContract]
+        MoveList GetMovesByGameID(int gameID);
+
+        // Operation: Retrieves all moves made by a specific player across all games
+        [OperationContract]
+        MoveList GetMovesByPlayerID(int playerID);
+
+        // Operation: Returns the most recent move in a specific game
+        [OperationContract]
+        MoveRecord ReturnLastMoveByGameID(int gameID);
+
+        // Operation: Undoes the last move in a game by deleting it from the database
+        [OperationContract]
+        MoveRecord UndoLastMove(int gameID);
+
         // ============= USER/PLAYER OPERATIONS =============
 
         // Operation: Retrieves all users from the database
         [OperationContract]
         PlayerList GetAllUsers();
 
-        // Operation: Searches for users by name pattern
+        // Operation: Retrieves a specific user by their ID
         [OperationContract]
-        PlayerList SearchUsersByName(string name);
+        Player GetUserByID(int userID);
 
         // Operation: Retrieves a user by their exact username
         [OperationContract]
         Player GetUserByName(string name);
 
-        // Operation: Retrieves a specific user by their ID
+        // Operation: Searches for users whose username matches a pattern
         [OperationContract]
-        Player GetUserByID(int userID);
+        PlayerList SearchUsersByName(string name);
 
         // Operation: Inserts a new user into the database
         [OperationContract]
         void InsertUser(Player user);
 
-        // Operation: Deletes a user from the database
-        [OperationContract]
-        void DeleteUser(Player user);
-
         // Operation: Updates an existing user in the database
         [OperationContract]
         void UpdateUser(Player user);
 
-        // ============= MOVE OPERATIONS =============
-
-        // Operation: Retrieves all moves from the database
+        // Operation: Deletes a user from the database
         [OperationContract]
-        MoveList GetAllMoves();
-
-        // Operation: Retrieves all moves made by a specific player
-        [OperationContract]
-        MoveList GetMovesByPlayerID(int playerID);
-
-        // Operation: Retrieves all moves for a specific game
-        [OperationContract]
-        MoveList GetMovesByGameID(int gameID);
-
-        // Operation: Returns the most recent move in a specific game
-        // ✅ FIX: Changed return type from Move to MoveRecord
-        [OperationContract]
-        MoveRecord ReturnLastMoveByGameID(int gameID);
-
-        // Operation: Inserts a new move into the database
-        // ✅ FIX: Changed parameter type from Move to MoveRecord
-        [OperationContract]
-        void InsertMove(MoveRecord move);
-
-        // Operation: Deletes a move from the database
-        // ✅ FIX: Changed parameter type from Move to MoveRecord
-        [OperationContract]
-        void DeleteMove(MoveRecord move);
-
-        // Operation: Updates an existing move in the database
-        // ✅ FIX: Changed parameter type from Move to MoveRecord
-        [OperationContract]
-        void UpdateMove(MoveRecord move);
-
-        // Operation: Deletes all moves associated with a specific game
-        [OperationContract]
-        void DeleteMovesByGameID(int gameID);
-
-        // Operation: Undoes the last move in a game by deleting it
-        // ✅ FIX: Changed return type from Move to MoveRecord
-        [OperationContract]
-        MoveRecord UndoLastMove(int gameID);
+        void DeleteUser(Player user);
 
         // ============= GAME STATISTICS & LOGIC =============
 
-        // Operation: Updates player statistics after a game (wins/losses)
+        // Operation: Updates player statistics after a game ends
+        // Increments GamesPlayed and either Wins or Losses based on the won parameter
         [OperationContract]
         void UpdatePlayerStats(int playerID, bool won);
 
-        // Operation: Updates ELO ratings for both players after a game
+        // Operation: Updates player statistics after a draw
+        // Increments GamesPlayed and Draws for the specified player
         [OperationContract]
-        void UpdateEloRatings(int winnerID, int loserID, int winnerElo, int loserElo);
+        void UpdatePlayerDraw(int playerID);
 
         // Operation: Checks if it's a specific player's turn in a game
+        // Based on move count: even number of moves = white's turn, odd = black's turn
+
+        // Operation: Reverts player statistics when a game is deleted
+        [OperationContract]
+        void RevertPlayerStats(int playerID, bool won);
+
+        // Operation: Reverts player draw statistics when a game is deleted
+        [OperationContract]
+        void RevertPlayerDraw(int playerID);
+
         [OperationContract]
         bool IsPlayerTurn(int gameID, int playerID);
 
         // ============= AUTHENTICATION =============
 
         // Operation: Signs in an admin user using Firebase authentication
+        // Returns the admin Player object if successful, null otherwise
         [OperationContract]
         Player SignIn(string email, string password);
+
+
+
+        // ============= FRIENDSHIP OPERATIONS =============
+        [OperationContract] FriendshipList GetAllFriendships();
+        [OperationContract] FriendshipList GetAcceptedFriendsByUser(int userID);
+        [OperationContract] FriendshipList GetPendingFriendRequestsForUser(int userID);
+        [OperationContract] bool FriendshipExists(int userA, int userB);
+        [OperationContract] int SendFriendRequest(int requesterID, int receiverID);
+        [OperationContract] void AcceptFriendRequest(int friendshipID);
+        [OperationContract] void DeleteFriendship(int friendshipID);
+
+        [OperationContract] void DeclineFriendRequest(int friendshipID);
     }
 }

@@ -7,11 +7,17 @@ using ViewModel;
 
 namespace WcfService
 {
-    // WCF Service Contract interface defining all user operations for the chess system
+    // WCF Service Contract interface defining all user-level operations for the chess system
+    // All methods marked with [OperationContract] are exposed as web service endpoints
+    // Unlike IChessServiceAdmin, this interface only exposes operations safe for regular users
     [ServiceContract]
     public interface IChessServiceUser
     {
         // ============= GAME OPERATIONS =============
+
+        // Operation: Retrieves a specific game by its ID
+        [OperationContract]
+        Game GetGameByID(int gameID);
 
         // Operation: Retrieves all games where a specific player participated
         [OperationContract]
@@ -21,11 +27,15 @@ namespace WcfService
         [OperationContract]
         Game GetLatestGameForPlayer(int playerID);
 
-        // Operation: Retrieves a specific game by its ID
+        // Operation: Checks if a game has finished (has a result)
         [OperationContract]
-        Game GetGameByID(int gameID);
+        bool IsGameFinished(int gameID);
 
         // ============= USER/PLAYER OPERATIONS =============
+
+        // Operation: Retrieves all users from the database
+        [OperationContract]
+        PlayerList GetAllUsers();
 
         // Operation: Retrieves a specific user by their ID
         [OperationContract]
@@ -43,48 +53,43 @@ namespace WcfService
         [OperationContract]
         void DeleteUser(Player user);
 
-        // Operation: Retrieves all users from the database
-        [OperationContract]
-        PlayerList GetAllUsers();
-
         // ============= MOVE OPERATIONS =============
 
-        // Operation: Retrieves all moves for a specific game
+        // Operation: Retrieves all moves for a specific game ordered by move index
         [OperationContract]
         MoveList GetMovesByGameID(int gameID);
 
-        // Operation: Retrieves all moves made by a specific player
+        // Operation: Retrieves all moves made by a specific player across all games
         [OperationContract]
         MoveList GetMovesByPlayerID(int playerID);
 
-        // Operation: Returns the last move in a specific game
-        // ✅ FIX: Changed return type from Move to MoveRecord
-        [OperationContract]
-        MoveRecord GetLastMoveByGameID(int gameID);
-
         // Operation: Retrieves a specific move by its ID
-        // ✅ FIX: Changed return type from Move to MoveRecord
         [OperationContract]
         MoveRecord GetMoveByID(int moveID);
+
+        // Operation: Returns the last move made in a specific game
+        [OperationContract]
+        MoveRecord GetLastMoveByGameID(int gameID);
 
         // ============= GAME LOGIC =============
 
         // Operation: Checks if it's a specific player's turn in a game
+        // Based on move count: even number of moves = white's turn, odd = black's turn
         [OperationContract]
         bool IsPlayerTurn(int gameID, int playerID);
-
-        // Operation: Checks if a game has finished (has a result)
-        [OperationContract]
-        bool IsGameFinished(int gameID);
 
         // ============= AUTHENTICATION =============
 
         // Operation: Registers a new user with Firebase authentication
+        // Returns a success or error message string
         [OperationContract]
         Task<string> SignUp(string email, string password);
 
         // Operation: Signs in a user using Firebase authentication
+        // Returns the authenticated Player object or null if authentication fails
         [OperationContract]
         Player Login(string email, string password);
+
+
     }
 }

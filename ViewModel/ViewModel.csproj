@@ -60,6 +60,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="BaseDB.cs" />
+    <Compile Include="FriendshipDB.cs" />
     <Compile Include="GameDB.cs" />
     <Compile Include="MoveDB.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

@@ -76,7 +76,7 @@ namespace Model
             set { moveType = value; }
         }
 
-        // Field: Piece type to promote to (null, "Queen", "Rook", etc.)
+        // Field: Piece type to promote to ("Queen", "Rook", "Bishop", "Knight".)
         private string promotion;
 
         // Property: Gets or sets the promotion piece type
