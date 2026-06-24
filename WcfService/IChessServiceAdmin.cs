@@ -106,6 +106,10 @@ namespace WcfService
         [OperationContract]
         PlayerList GetAllUsers();
 
+        // Alias for backward compatibility with old WPF client
+        [OperationContract(Name = "GetAllplayers")]
+        PlayerList GetAllplayers();
+
         // Operation: Retrieves a specific user by their ID
         [OperationContract]
         Player GetUserByID(int userID);
@@ -126,9 +130,17 @@ namespace WcfService
         [OperationContract]
         void UpdateUser(Player user);
 
+        // Alias for backward compatibility with old WPF client
+        [OperationContract(Name = "UpdatePlayer")]
+        void UpdatePlayer(Player player);
+
         // Operation: Deletes a user from the database
         [OperationContract]
         void DeleteUser(Player user);
+
+        // Alias for backward compatibility with old WPF client
+        [OperationContract(Name = "DeletePlayer")]
+        void DeletePlayer(Player player);
 
         // ============= GAME STATISTICS & LOGIC =============
 
@@ -168,6 +180,11 @@ namespace WcfService
         // ============= FRIENDSHIP OPERATIONS =============
         [OperationContract] FriendshipList GetAllFriendships();
         [OperationContract] FriendshipList GetAcceptedFriendsByUser(int userID);
+
+        // Alias for backward compatibility with old WPF client
+        [OperationContract(Name = "GetAcceptedFriendsByPlayer")]
+        FriendshipList GetAcceptedFriendsByPlayer(Player player);
+
         [OperationContract] FriendshipList GetPendingFriendRequestsForUser(int userID);
         [OperationContract] bool FriendshipExists(int userA, int userB);
         [OperationContract] int SendFriendRequest(int requesterID, int receiverID);

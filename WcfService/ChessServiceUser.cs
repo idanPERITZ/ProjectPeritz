@@ -34,6 +34,13 @@ namespace WcfService
             new UserDB().Insert(user);
         }
 
+        // Alias method for backward compatibility - inserts player with password
+        public void InsertPlayer(Player player, string password)
+        {
+            // For now, just insert the player (password handling would go through Firebase)
+            InsertUser(player);
+        }
+
         public void UpdateUser(Player user)
         {
             new UserDB().Update(user);
@@ -47,6 +54,12 @@ namespace WcfService
         public PlayerList GetAllUsers()
         {
             return new UserDB().SelectAll();
+        }
+
+        // Alias method for backward compatibility
+        public PlayerList GetAllplayers()
+        {
+            return GetAllUsers();
         }
 
         public Player GetUserByID(int userID)
@@ -96,9 +109,21 @@ namespace WcfService
             new GameDB().Update(game);
         }
 
+        // Alias method for backward compatibility - updates game result
+        public void UpdateGameResult(Game game)
+        {
+            UpdateGame(game);
+        }
+
         public void DeleteGame(Game game)
         {
             new GameDB().Delete(game);
+        }
+
+        // Alias method for backward compatibility - deletes open game
+        public void DeleteOpen(Game game)
+        {
+            DeleteGame(game);
         }
 
         public GameList GetGamesByPlayer(int playerID)

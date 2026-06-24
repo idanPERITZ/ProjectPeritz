@@ -88,6 +88,15 @@ namespace Model
             // Set the promotion piece type
             set { promotion = value; }
         }
+
+        // Property: Game object for backward compatibility (deprecated)
+        // Note: Always returns null. Use GameID instead.
+        [DataMember]
+        public Game Game
+        {
+            get { return null; }
+            set { if (value != null) gameID = value.GameID; }
+        }
     }
 
     // Collection class for managing a list of moves

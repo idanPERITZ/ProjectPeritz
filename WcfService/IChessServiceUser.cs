@@ -71,9 +71,17 @@ namespace WcfService
         [OperationContract]
         void UpdateGame(Game game);
 
+        // Alias for backward compatibility - updates game result
+        [OperationContract(Name = "UpdateGameResult")]
+        void UpdateGameResult(Game game);
+
         // Operation: Deletes a game from the database
         [OperationContract]
         void DeleteGame(Game game);
+
+        // Alias for backward compatibility - deletes open game
+        [OperationContract(Name = "DeleteOpen")]
+        void DeleteOpen(Game game);
 
         // Operation: Retrieves all games where a specific player participated
         [OperationContract]
@@ -97,6 +105,10 @@ namespace WcfService
         [OperationContract]
         PlayerList GetAllUsers();
 
+        // Alias for backward compatibility with old WPF client
+        [OperationContract(Name = "GetAllplayers")]
+        PlayerList GetAllplayers();
+
         // Operation: Retrieves a specific user by their ID
         [OperationContract]
         Player GetUserByID(int userID);
@@ -104,6 +116,10 @@ namespace WcfService
         // Operation: Inserts a new user into the database
         [OperationContract]
         void InsertUser(Player user);
+
+        // Alias for backward compatibility - takes player and password
+        [OperationContract(Name = "InsertPlayer")]
+        void InsertPlayer(Player player, string password);
 
         // Operation: Updates an existing user in the database
         [OperationContract]

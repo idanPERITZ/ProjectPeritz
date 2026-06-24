@@ -106,6 +106,16 @@ namespace Model
             // Set draws count
             set { draws = value; }
         }
+
+        // Property: GoogleId for backward compatibility (deprecated)
+        [DataMember]
+        public string GoogleId
+        {
+            // Always return null - feature removed
+            get { return null; }
+            // Ignore setter - feature removed
+            set { }
+        }
     }
 
     // Collection class for managing a list of players

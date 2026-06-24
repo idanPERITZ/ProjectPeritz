@@ -210,6 +210,12 @@ namespace WcfService
             new UserDB().Delete(user);
         }
 
+        // Alias method for backward compatibility with old WPF client
+        public void DeletePlayer(Player player)
+        {
+            DeleteUser(player);
+        }
+
         // Method: Retrieves a specific user by their ID
         public Player GetUserByID(int userID)
         {
@@ -234,6 +240,12 @@ namespace WcfService
         {
             // Create UserDB instance and select all users
             return new UserDB().SelectAll();
+        }
+
+        // Alias method for backward compatibility with old WPF client
+        public PlayerList GetAllplayers()
+        {
+            return GetAllUsers();
         }
 
         // Method: Searches for users whose username matches a pattern

@@ -35,6 +35,14 @@ namespace Model
             set { whitePlayerUserId = value; }
         }
 
+        // Alias for backward compatibility with old WPF client
+        [DataMember]
+        public Player WhitePlayer
+        {
+            get { return whitePlayerUserId; }
+            set { whitePlayerUserId = value; }
+        }
+
         // Field: The player who played as black
         private Player blackPlayerUserId;
 
@@ -45,6 +53,14 @@ namespace Model
             // Return the black player
             get { return blackPlayerUserId; }
             // Set the black player
+            set { blackPlayerUserId = value; }
+        }
+
+        // Alias for backward compatibility with old WPF client
+        [DataMember]
+        public Player BlackPlayer
+        {
+            get { return blackPlayerUserId; }
             set { blackPlayerUserId = value; }
         }
 
