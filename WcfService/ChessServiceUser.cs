@@ -9,184 +9,513 @@ using ViewModel;
 namespace WcfService
 {
     // WCF Service class providing user-level operations for the chess system
-    // Implements IChessServiceUser and handles all regular user requests
+    // Implements IChessServiceUser with duplex callback support
+    [ServiceBehavior(InstanceContextMode = InstanceContextMode.PerSession, ConcurrencyMode = ConcurrencyMode.Multiple)]
     public class ChessServiceUser : IChessServiceUser
     {
+        // Static collection to track online players and their callback channels
+        private static readonly Dictionary<int, IChessServiceUserCallback> callbacks = new Dictionary<int, IChessServiceUserCallback>();
+        private static readonly List<Player> onlinePlayers = new List<Player>();
+        private static readonly object lockObj = new object();
+
+        // Get the callback channel for the current client
+        private IChessServiceUserCallback CurrentCallback
+        {
+            get
+            {
+                return OperationContext.Current.GetCallbackChannel<IChessServiceUserCallback>();
+            }
+        }
+
         // ============= USER/PLAYER OPERATIONS =============
 
-        // Method: Inserts a new user into the database
         public void InsertUser(Player user)
         {
-            // Create UserDB instance and insert the user
             new UserDB().Insert(user);
         }
 
-        // Method: Updates an existing user in the database
         public void UpdateUser(Player user)
         {
-            // Create UserDB instance and update the user
             new UserDB().Update(user);
         }
 
-        // Method: Deletes a user from the database
         public void DeleteUser(Player user)
         {
-            // Create UserDB instance and delete the user
             new UserDB().Delete(user);
         }
 
-        // Method: Retrieves all users from the database
         public PlayerList GetAllUsers()
         {
-            // Create UserDB instance and select all users
             return new UserDB().SelectAll();
         }
 
-        // Method: Retrieves a specific user by their ID
         public Player GetUserByID(int userID)
         {
-            // Create UserDB instance and select user by ID
             return new UserDB().SelectById(userID);
         }
 
         // ============= GAME OPERATIONS =============
 
-        // Method: Retrieves a specific game by its ID
+        public GameList GetAllGames()
+        {
+            return new GameDB().SelectAll();
+        }
+
+        public GameList GetActiveGames()
+        {
+            return new GameDB().SelectAll();
+        }
+
         public Game GetGameByID(int gameID)
         {
-            // Create GameDB instance and select game by ID
             return new GameDB().SelectById(gameID);
         }
 
-        // Method: Retrieves all games where a specific player participated
+        public Game GetGameByID(Game game)
+        {
+            if (game == null) return null;
+            return new GameDB().SelectById(game.Id);
+        }
+
+        public Game InsertGame(Game game)
+        {
+            GameDB db = new GameDB();
+            db.Insert(game);
+            return db.GetGame(game);
+        }
+
+        public Game InsertGameAndReturn(Game game)
+        {
+            GameDB db = new GameDB();
+            int newId = db.InsertAndReturnId(game);
+            return db.SelectById(newId);
+        }
+
+        public void UpdateGame(Game game)
+        {
+            new GameDB().Update(game);
+        }
+
+        public void DeleteGame(Game game)
+        {
+            new GameDB().Delete(game);
+        }
+
         public GameList GetGamesByPlayer(int playerID)
         {
-            // Create GameDB instance and select games by player ID
             return new GameDB().SelectByPlayer(playerID);
         }
 
-        // Method: Retrieves the most recent game for a specific player
+        public GameList GetGamesByPlayer(Player player)
+        {
+            if (player == null) return new GameList();
+            return new GameDB().SelectByPlayer(player.Id);
+        }
+
         public Game GetLatestGameForPlayer(int playerID)
         {
-            // Get all games for the player
             GameList list = new GameDB().SelectByPlayer(playerID);
-            // If list is null or empty, return null
             if (list == null || list.Count == 0)
                 return null;
-            // Return the last game in the list
             return list.Last();
+        }
+
+        public bool IsGameFinished(int gameID)
+        {
+            Game game = new GameDB().SelectById(gameID);
+            return game != null && game.Result != null;
         }
 
         // ============= MOVE OPERATIONS =============
 
-        // Method: Retrieves a specific move by its ID
-        // Loads all moves and filters by ID since MoveDB has no SelectById
-        public MoveRecord GetMoveByID(int moveID)
+        public void InsertMove(MoveRecord move)
         {
-            // Create MoveDB instance and get all moves
-            MoveDB moveDB = new MoveDB();
-            MoveList moves = moveDB.SelectAll();
-            // Find and return the move with matching ID (or null if not found)
-            return moves.FirstOrDefault(m => m.Id == moveID);
+            new MoveDB().Insert(move);
         }
 
-        // Method: Retrieves all moves for a specific game ordered by move index
+        public void UpdateMove(MoveRecord move)
+        {
+            new MoveDB().Update(move);
+        }
+
+        public void DeleteMove(MoveRecord move)
+        {
+            new MoveDB().Delete(move);
+        }
+
         public MoveList GetMovesByGameID(int gameID)
         {
-            // Create MoveDB instance and select moves by game ID
             return new MoveDB().SelectByGame(gameID);
         }
 
-        // Method: Retrieves all moves made by a specific player across all games
         public MoveList GetMovesByPlayerID(int playerID)
         {
-            // Create MoveDB instance and select moves by player ID
             return new MoveDB().SelectByPlayer(playerID);
         }
 
-        // Method: Returns the last move made in a specific game
+        public MoveRecord GetMoveByID(int moveID)
+        {
+            MoveDB moveDB = new MoveDB();
+            MoveList moves = moveDB.SelectAll();
+            return moves.FirstOrDefault(m => m.Id == moveID);
+        }
+
         public MoveRecord GetLastMoveByGameID(int gameID)
         {
-            // Get all moves for the game
             MoveList moves = new MoveDB().SelectByGame(gameID);
-            // If list is null or empty, return null
             if (moves == null || moves.Count == 0)
                 return null;
-            // Return the last move in the list
             return moves.Last();
+        }
+
+        public MoveRecord ReturnLastMoveByGameID(int gameID)
+        {
+            return GetLastMoveByGameID(gameID);
+        }
+
+        public MoveRecord UndoLastMove(int gameID)
+        {
+            MoveDB moveDB = new MoveDB();
+            MoveList moves = moveDB.SelectByGame(gameID);
+            if (moves == null || moves.Count == 0)
+                return null;
+            MoveRecord lastMove = moves.Last();
+            moveDB.Delete(lastMove);
+            return lastMove;
         }
 
         // ============= GAME LOGIC =============
 
-        // Method: Checks if it's a specific player's turn in a game
-        // Based on move count: even = white's turn, odd = black's turn
         public bool IsPlayerTurn(int gameID, int playerID)
         {
-            // Get all moves for the game
             MoveList moves = new MoveDB().SelectByGame(gameID);
-            // Get the game details
             Game game = new GameDB().SelectById(gameID);
-            // If game not found, return false
             if (game == null)
                 return false;
-            // If no moves have been made yet, it's white player's turn
             if (moves.Count == 0)
                 return playerID == game.WhitePlayerUserID.Id;
-            // Calculate whose turn it is based on number of moves
-            // Even number of moves = white's turn, odd = black's turn
             bool isWhiteTurn = moves.Count % 2 == 0;
-            // Return true if it's the specified player's turn
             if (isWhiteTurn)
                 return playerID == game.WhitePlayerUserID.Id;
             else
                 return playerID == game.BlackPlayerUserID.Id;
         }
 
-        // Method: Checks if a game has finished (has a result)
-        public bool IsGameFinished(int gameID)
+        public void UpdatePlayerStats(int playerID, bool won)
         {
-            // Get the game by ID
-            Game game = new GameDB().SelectById(gameID);
-            // Return true if game exists and has a result (winner or draw)
-            return game != null && game.Result != null;
+            Player player = new UserDB().SelectById(playerID);
+            if (player == null)
+                return;
+            player.GamesPlayed++;
+            if (won)
+                player.Wins++;
+            else
+                player.Losses++;
+            new UserDB().Update(player);
+        }
+
+        public void UpdatePlayerDraw(int playerID)
+        {
+            Player player = new UserDB().SelectById(playerID);
+            if (player == null) return;
+            player.GamesPlayed++;
+            player.Draws++;
+            new UserDB().Update(player);
         }
 
         // ============= AUTHENTICATION =============
 
-        // Method: Registers a new user with Firebase authentication
-        // Returns success message or error string
         public async Task<string> SignUp(string email, string password)
         {
-            // Create Firebase authentication service
             FirebaseAuthService authService = new FirebaseAuthService();
-            // Sign up the user and return the result message
             return await authService.SignUp(email, password);
         }
 
-        // Method: Signs in a regular user using Firebase authentication
-        // Returns the authenticated player or null if authentication fails
         public Player Login(string email, string password)
         {
-            // Create Firebase authentication service
             FirebaseAuthService authService = new FirebaseAuthService();
-            // Attempt to sign in with email and password (wait for async result)
             var signInResult = authService.SignIn(email, password).GetAwaiter().GetResult();
 
-            // If sign-in was successful
             if (signInResult.Success)
             {
-                // Get player from database using Firebase LocalId and email
                 Player player = new UserDB().Login(signInResult.LocalId, email);
-                // If player not found in database, return null
                 if (player == null)
                     return null;
-                // Return the authenticated player
                 return player;
             }
-            // If sign-in failed, return null
             return null;
         }
 
+        // ============= ONLINE PLAYERS & MULTIPLAYER =============
 
+        public void PlayerJoin(Player player)
+        {
+            if (player == null) return;
+
+            lock (lockObj)
+            {
+                // Remove if already exists (reconnect scenario)
+                onlinePlayers.RemoveAll(p => p.Id == player.Id);
+                callbacks.Remove(player.Id);
+
+                // Add player to online list
+                onlinePlayers.Add(player);
+                callbacks[player.Id] = CurrentCallback;
+            }
+
+            // Notify all other clients that this player joined
+            NotifyAllExcept(player.Id, callback => callback.PlayerJoined(player));
+        }
+
+        public void PlayerLeave(Player player)
+        {
+            if (player == null) return;
+
+            lock (lockObj)
+            {
+                onlinePlayers.RemoveAll(p => p.Id == player.Id);
+                callbacks.Remove(player.Id);
+            }
+
+            // Notify all clients that this player left
+            NotifyAll(callback => callback.PlayerLeft(player));
+        }
+
+        public PlayerList GetOnlinePlayers()
+        {
+            lock (lockObj)
+            {
+                return new PlayerList(onlinePlayers);
+            }
+        }
+
+        public void InvitePlayer(Player inviter, Player invited, bool isWhite)
+        {
+            if (invited == null) return;
+
+            lock (lockObj)
+            {
+                if (callbacks.TryGetValue(invited.Id, out var callback))
+                {
+                    try
+                    {
+                        callback.RecieveInvitation(inviter, isWhite);
+                    }
+                    catch { }
+                }
+            }
+        }
+
+        public void RespondToInvitation(Player inviter, Player invited, bool accept, bool isWhite)
+        {
+            if (inviter == null) return;
+
+            Game game = null;
+            if (accept)
+            {
+                // Create a new game
+                game = new Game
+                {
+                    WhitePlayerUserID = isWhite ? invited : inviter,
+                    BlackPlayerUserID = isWhite ? inviter : invited,
+                    GameDate = DateTime.Now,
+                    Result = null
+                };
+                game = InsertGameAndReturn(game);
+            }
+
+            lock (lockObj)
+            {
+                if (callbacks.TryGetValue(inviter.Id, out var callback))
+                {
+                    try
+                    {
+                        callback.RecieveInvitationResponse(invited, accept, game);
+                    }
+                    catch { }
+                }
+            }
+        }
+
+        public void SendMove(MoveRecord move)
+        {
+            if (move == null) return;
+
+            // Insert the move into the database
+            InsertMove(move);
+
+            // Get the game to find the opponent
+            Game game = GetGameByID(move.GameID);
+            if (game == null) return;
+
+            // Get all moves to determine whose turn it was
+            MoveList moves = GetMovesByGameID(move.GameID);
+
+            // Determine who made the move based on move count
+            // If move index is even (0, 2, 4...), white made the move
+            // If move index is odd (1, 3, 5...), black made the move
+            bool whiteMadeMove = move.MoveIndex % 2 == 0;
+
+            // Determine opponent ID
+            int opponentId = whiteMadeMove 
+                ? game.BlackPlayerUserID.Id 
+                : game.WhitePlayerUserID.Id;
+
+            // Notify opponent of the move
+            lock (lockObj)
+            {
+                if (callbacks.TryGetValue(opponentId, out var callback))
+                {
+                    try
+                    {
+                        callback.RecievedMove(move);
+                    }
+                    catch { }
+                }
+            }
+        }
+
+        public void LeaveGame(Game game, Player leavingPlayer)
+        {
+            if (game == null || leavingPlayer == null) return;
+
+            // Determine opponent ID
+            int opponentId = (leavingPlayer.Id == game.WhitePlayerUserID.Id)
+                ? game.BlackPlayerUserID.Id
+                : game.WhitePlayerUserID.Id;
+
+            // Notify opponent that player left
+            lock (lockObj)
+            {
+                if (callbacks.TryGetValue(opponentId, out var callback))
+                {
+                    try
+                    {
+                        callback.OpponentLeftGame();
+                    }
+                    catch { }
+                }
+            }
+        }
+
+        // ============= FRIENDSHIP OPERATIONS =============
+
+        public FriendshipList GetAcceptedFriendsByPlayer(int playerID)
+        {
+            return new FriendshipDB().SelectAcceptedByUser(playerID);
+        }
+
+        public FriendshipList GetAcceptedFriendsByPlayer(Player player)
+        {
+            if (player == null) return new FriendshipList();
+            return new FriendshipDB().SelectAcceptedByUser(player.Id);
+        }
+
+        public FriendshipList GetPendingFriendRequestsForPlayer(int playerID)
+        {
+            return new FriendshipDB().SelectPendingForUser(playerID);
+        }
+
+        public FriendshipList GetPendingFriendRequestsForPlayer(Player player)
+        {
+            if (player == null) return new FriendshipList();
+            return new FriendshipDB().SelectPendingForUser(player.Id);
+        }
+
+        public bool FriendshipExists(int userA, int userB)
+        {
+            return new FriendshipDB().FriendshipExists(userA, userB);
+        }
+
+        public int SendFriendRequest(int requesterID, int receiverID)
+        {
+            Friendship f = new Friendship
+            {
+                RequesterID = requesterID,
+                ReceiverID = receiverID
+            };
+            return new FriendshipDB().InsertAndReturnId(f);
+        }
+
+        public int SendFriendRequest(Friendship friendship)
+        {
+            if (friendship == null) return 0;
+            return new FriendshipDB().InsertAndReturnId(friendship);
+        }
+
+        public void AcceptFriendRequest(int friendshipID)
+        {
+            Friendship f = new Friendship { Id = friendshipID };
+            new FriendshipDB().Update(f);
+        }
+
+        public void AcceptFriendRequest(Friendship friendship)
+        {
+            if (friendship == null) return;
+            new FriendshipDB().Update(friendship);
+        }
+
+        public void DeleteFriendship(int friendshipID)
+        {
+            Friendship f = new Friendship { Id = friendshipID };
+            new FriendshipDB().Delete(f);
+        }
+
+        public void DeleteFriendship(Friendship friendship)
+        {
+            if (friendship == null) return;
+            new FriendshipDB().Delete(friendship);
+        }
+
+        public void DeclineFriendRequest(int friendshipID)
+        {
+            Friendship f = new Friendship { Id = friendshipID };
+            new FriendshipDB().Delete(f);
+        }
+
+        public void DeclineFriendRequest(Friendship friendship)
+        {
+            if (friendship == null) return;
+            new FriendshipDB().Delete(friendship);
+        }
+
+        // ============= HELPER METHODS FOR CALLBACKS =============
+
+        private void NotifyAll(Action<IChessServiceUserCallback> action)
+        {
+            lock (lockObj)
+            {
+                foreach (var callback in callbacks.Values.ToList())
+                {
+                    try
+                    {
+                        action(callback);
+                    }
+                    catch
+                    {
+                        // Ignore failed callbacks (disconnected clients)
+                    }
+                }
+            }
+        }
+
+        private void NotifyAllExcept(int exceptPlayerId, Action<IChessServiceUserCallback> action)
+        {
+            lock (lockObj)
+            {
+                foreach (var kvp in callbacks.ToList())
+                {
+                    if (kvp.Key == exceptPlayerId) continue;
+                    try
+                    {
+                        action(kvp.Value);
+                    }
+                    catch
+                    {
+                        // Ignore failed callbacks (disconnected clients)
+                    }
+                }
+            }
+        }
     }
 }
