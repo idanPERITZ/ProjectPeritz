@@ -203,6 +203,12 @@ namespace WcfService
             new UserDB().Update(user);
         }
 
+        // Alias method for backward compatibility with old WPF client
+        public void UpdatePlayer(Player player)
+        {
+            UpdateUser(player);
+        }
+
         // Method: Deletes a user from the database
         public void DeleteUser(Player user)
         {
@@ -381,6 +387,12 @@ namespace WcfService
         public FriendshipList GetAcceptedFriendsByUser(int userID)
         {
             return new FriendshipDB().SelectAcceptedByUser(userID);
+        }
+
+        // Alias method for backward compatibility with old WPF client
+        public FriendshipList GetAcceptedFriendsByPlayer(Player player)
+        {
+            return GetAcceptedFriendsByUser(player.Id);
         }
 
         // Method: Returns all pending friend requests sent TO a specific user
